@@ -1,0 +1,166 @@
+syntax = "v1"
+
+// 登录
+type (
+	loginreq {
+		Name     string `form:"name"`
+		PassWord string `form:"password"`
+	}
+	loginres {
+		Token string `form:"token"`
+	}
+)
+
+// 注册
+type (
+	userregisterreq {
+		Username string `form:"username"`
+		Password string `form:"password"`
+		Email    string `form:"mail"`
+		Code     string `form:"code"`
+	}
+	userregisterres struct{}
+)
+
+// 注册 验证码
+type (
+	MailCodeSendreq {
+		Email string `form:"email"`
+	}
+	MailCodeSendres {
+		Code string `form:"code"`
+	}
+)
+
+// 用户详情
+type (
+	userdetailreq {
+		Identity string `path:"identity"`
+	}
+	userdetailres {
+		Name  string `form:"name"`
+		Email string `form:"email"`
+	}
+) 
+@server(
+	middleware: Logger
+)
+service core-api {
+	@handler UserLogin
+	post /user/login(loginreq) returns (loginres)
+
+	@handler UserDetail
+	post /user/detail/:identity(userdetailreq) returns (userdetailres)
+
+	@handler MailCodeSendRegister
+	post /mail/code/send/register(MailCodeSendreq) returns(MailCodeSendres)
+
+	@handler UserRegister
+	post /user/register(userregisterreq) returns (userregisterres)
+
+}
+
+// 文件上传
+type (
+	FileUploadreq {
+		Hash string `json:"hash,optional"`
+		Name string `json:"name,optional"`
+		Ext  string `json:"ext,optional"`
+		Size int64  `json:"size,optional"`
+		Path string `json:"path,optional"`
+	}
+	FileUploadres {
+		Identity string `json:"identity"`
+		Ext      string `json:"ext"`
+		Name     string `json:"name"`
+	}
+)
+
+// 文件用户关联
+type (
+	UserRepositorySavereq {
+		ParentId           int    `json:"parentId"`
+		RepositoryIdentity string `json:"repositoryIdentity"`
+		Ext                string `json:"ext"`
+		Name               string `json:"name"`
+	}
+	UserRepositorySaveres {
+		Identity string `json:"identity"`
+	}
+)
+
+// 用户文件列表
+type (
+	UserFileListreq {
+		Id   int `json:"id,optional"`   //parent_id
+		Page int `json:"page,optional"` //第几页
+		Size int `json:"size,optional"` //每页数量
+	}
+	UserFileListres {
+		List  []*UserFile `json:"list"`
+		Count int         `json:"count"`
+	}
+	UserFile {
+		Id                 int    `json:"id"`
+		Identity           string `json:"identity"`
+		RepositoryIdentity string `json:"repository"`
+		Name               string `json:"name"`
+		Ext                string `json:"ext"`
+		Path               string `json:"path"`
+		Size               int    `json:"size"`
+	}
+)
+
+// 用户文件名称修改
+type (
+	UserFileNameUpdatereq {
+		Identity string `json:"identity"` //(repository_pool -> repository_identity)
+		Name     string `json:"name"`     //新name
+	}
+	UserFileNameUpdateres {
+	}
+)
+
+// 用户文件夹创建
+type (
+	UserFolderCreatereq {
+		ParentId int    `json:"parent_id"` //该 文件夹的 父级文件夹 的id(顶层为0)
+		Name     string `json:"name"`
+	}
+	UserFolderCreateres {
+		Identity string `json:"identity"`
+	}
+)
+
+// 用户文件夹删除
+type (
+	UserFolderDeletereq {
+		Identity string `path:"identity"`
+	}
+	UserFolderDeleteres struct{}
+)
+
+@server (
+
+	middleware: Auth
+)
+service core-api {
+	@handler FileUpload
+	post /file/upload(FileUploadreq) returns(FileUploadres)
+
+	@handler UserRepositorySave
+	post /user/repository/save(UserRepositorySavereq) returns(UserRepositorySaveres)
+
+	@handler UserFileNameUpdate
+	post /user/file/name/update(UserFileNameUpdatereq) returns(UserFileNameUpdateres)
+
+	@handler UserFileList
+	post /user/file/list(UserFileListreq) returns(UserFileListres)
+
+	@handler UserFolderCreate
+	post /user/folder/create/userfolder(UserFolderCreatereq) returns(UserFolderCreateres)
+
+	@handler UserFolderDelete
+	delete /user/folder/delete/userfolder/:identity(UserFolderDeletereq) returns(UserFolderDeleteres)
+
+}
