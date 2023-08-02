@@ -89,7 +89,7 @@ type (
 	}
 )
 
-// 用户文件列表
+// 用户-文件列表
 type (
 	UserFileListreq {
 		Id   int `json:"id,optional"`   //parent_id
@@ -111,7 +111,7 @@ type (
 	}
 )
 
-// 用户文件名称修改
+// 用户-文件名称修改
 type (
 	UserFileNameUpdatereq {
 		Identity string `json:"identity"` //(repository_pool -> repository_identity)
@@ -121,7 +121,7 @@ type (
 	}
 )
 
-// 用户文件夹创建
+// 用户-文件创建
 type (
 	UserFolderCreatereq {
 		ParentId int    `json:"parent_id"` //该 文件夹的 父级文件夹 的id(顶层为0)
@@ -132,7 +132,7 @@ type (
 	}
 )
 
-// 用户文件夹删除
+// 用户-文件删除
 type (
 	UserFolderDeletereq {
 		Identity string `path:"identity"`
@@ -140,8 +140,9 @@ type (
 	UserFolderDeleteres struct{}
 )
 
-@server (
+// 用户-文件移动
 
+@server (
 	middleware: Auth
 )
 service core-api {
