@@ -7,7 +7,17 @@ type Loginreq struct {
 }
 
 type Loginres struct {
-	Token string `form:"token"`
+	Token        string `form:"token"`
+	RefreshToken string `form:"refresh_token"`
+}
+
+type Userdetailreq struct {
+	Identity string `path:"identity"`
+}
+
+type Userdetailres struct {
+	Name  string `form:"name"`
+	Email string `form:"email"`
 }
 
 type Userregisterreq struct {
@@ -28,13 +38,16 @@ type MailCodeSendres struct {
 	Code string `form:"code"`
 }
 
-type Userdetailreq struct {
-	Identity string `path:"identity"`
+type ShareBasicDetailreq struct {
+	Identity string `path:"identity"` //sharebasic -> identity
 }
 
-type Userdetailres struct {
-	Name  string `form:"name"`
-	Email string `form:"email"`
+type ShareBasicDetailres struct {
+	RepositoryIdentity string `json:"repository_identity"`
+	Name               string `json:"name"`
+	Ext                string `json:"ext"`
+	Size               string `json:"size"`
+	Path               string `json:"path"`
 }
 
 type FileUploadreq struct {
@@ -105,4 +118,38 @@ type UserFolderDeletereq struct {
 }
 
 type UserFolderDeleteres struct {
+}
+
+type UserFolderMovereq struct {
+	Identity       string `json:"identity"`         //将要移动的文件的identity
+	ParentIdentity string `json:"parent_indentity"` //目标文件夹的identity
+}
+
+type UserFolderMoveres struct {
+}
+
+type ShareCreatereq struct {
+	RepositoryIdentity string `json:"repository_identity"`
+	ExpiredTime        int    `json:"expire_time"`
+}
+
+type ShareCreateres struct {
+	ShareIdentity string `json:"share_identity"`
+}
+
+type ShareBasicSavereq struct {
+	RepositoryIdentity string `json:"repository_identity"`
+	ParentId           int    `json:"parent_id"` //文件夹id
+}
+
+type ShareBasicSaveres struct {
+	Identity string `json:"identity"` //user_repository -> identity
+}
+
+type RefreshTokenreq struct {
+}
+
+type RefreshTokenres struct {
+	Token        string `form:"token"`
+	RefreshToken string `form:"refresh_token"`
 }

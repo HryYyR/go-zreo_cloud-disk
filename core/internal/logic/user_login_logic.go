@@ -7,6 +7,7 @@ import (
 	"cloud_disk/go-zreo_cloud-disk/core/models"
 	"context"
 	"errors"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -37,9 +38,17 @@ func (l *UserLoginLogic) UserLogin(req *types.Loginreq) (resp *types.Loginres, e
 		return nil, errors.New("用户名或密码错误!")
 	}
 	// 生成token
-	token, err := helper.GenerateToken(uint64(user.Id), user.Identity, user.Name)
+	token, err := helper.GenerateToken(uint64(user.Id), user.Identity, user.Name, time.Hour*12) // 1day 过期
 	if err != nil {
 		return nil, errors.New("generate token error: " + err.Error())
 	}
-	return &types.Loginres{Token: token}, nil
+	// 生成刷新token的token
+	refreshtoken, err := helper.GenerateToken(uint64(user.Id), user.Identity, user.Name, time.Hour*84) // 7day 过期
+	if err != nil {
+		return nil, errors.New("generate token error: " + err.Error())
+	}
+	resp = new(types.Loginres)
+	resp.Token = token
+	resp.RefreshToken = refreshtoken
+	return
 }

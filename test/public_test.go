@@ -41,7 +41,7 @@ func TestGenerateUUID(t *testing.T) {
 // token解密
 func TestDecryptToekn(t *testing.T) {
 	token := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJZCI6NiwiSWRlbnRpdHkiOiJjMmY0YjYyNi04NTJjLTRiMzYtOTZhMy1lYzA1OTlkZWU5NGEiLCJOYW1lIjoiSHl5eWgiLCJleHAiOjE2OTA3NTk5NDN9.1MeAJpy6xYi25T_u90_c3OMUTSAGjiX2pdkCLWzjeww"
-	detoken, err := helper.DecryptToekn(token)
+	detoken, err := helper.DecryptToken(token)
 	fmt.Printf("%v\n", detoken)
 	if err != nil {
 		t.Fatal(err)

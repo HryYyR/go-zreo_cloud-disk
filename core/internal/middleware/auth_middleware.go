@@ -23,7 +23,7 @@ func (m *AuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			w.Write([]byte("Invalid authorization"))
 			return
 		}
-		uc, err := helper.DecryptToekn(token)
+		uc, err := helper.DecryptToken(token)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write([]byte("Invalid authorization: " + err.Error()))

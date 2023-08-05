@@ -7,9 +7,21 @@ type (
 		PassWord string `form:"password"`
 	}
 	loginres {
-		Token string `form:"token"`
+		Token        string `form:"token"`
+		RefreshToken string `form:"refresh_token"`
 	}
 )
+
+// 用户详情
+type (
+	userdetailreq {
+		Identity string `path:"identity"`
+	}
+	userdetailres {
+		Name  string `form:"name"`
+		Email string `form:"email"`
+	}
+) 
 
 // 注册
 type (
@@ -32,31 +44,43 @@ type (
 	}
 )
 
-// 用户详情
+// 获取分享详细数据
 type (
-	userdetailreq {
-		Identity string `path:"identity"`
+	ShareBasicDetailreq {
+		Identity string `path:"identity"` //sharebasic -> identity
 	}
-	userdetailres {
-		Name  string `form:"name"`
-		Email string `form:"email"`
+	ShareBasicDetailres {
+		RepositoryIdentity string `json:"repository_identity"`
+		Name               string `json:"name"`
+		Ext                string `json:"ext"`
+		Size               string `json:"size"`
+		Path               string `json:"path"`
 	}
-) 
+)
+
 @server(
 	middleware: Logger
 )
 service core-api {
+	// 登录
 	@handler UserLogin
 	post /user/login(loginreq) returns (loginres)
 
+	// 用户详情
 	@handler UserDetail
 	post /user/detail/:identity(userdetailreq) returns (userdetailres)
 
+	// 注册
+	@handler UserRegister
+	post /user/register(userregisterreq) returns (userregisterres)
+
+	// 注册 验证码
 	@handler MailCodeSendRegister
 	post /mail/code/send/register(MailCodeSendreq) returns(MailCodeSendres)
 
-	@handler UserRegister
-	post /user/register(userregisterreq) returns (userregisterres)
+	// 获取分享详细数据
+	@handler ShareBasicDetail
+	get /share/basic/detail/:identity(ShareBasicDetailreq) returns(ShareBasicDetailres)
 
 }
 
@@ -121,7 +145,7 @@ type (
 	}
 )
 
-// 用户-文件创建
+// 用户-文件夹创建
 type (
 	UserFolderCreatereq {
 		ParentId int    `json:"parent_id"` //该 文件夹的 父级文件夹 的id(顶层为0)
@@ -141,27 +165,88 @@ type (
 )
 
 // 用户-文件移动
+type (
+	//user_repository -> identity
+	UserFolderMovereq {
+		Identity       string `json:"identity"`         //将要移动的文件的identity
+		ParentIdentity string `json:"parent_indentity"` //目标文件夹的identity
+	}
+	UserFolderMoveres struct{}
+)
+
+// 创建文件共享
+type (
+	ShareCreatereq {
+		RepositoryIdentity string `json:"repository_identity"`
+		ExpiredTime        int    `json:"expire_time"`
+	}
+	ShareCreateres {
+		ShareIdentity string `json:"share_identity"`
+	}
+)
+
+// 文件保存
+type (
+	ShareBasicSavereq {
+		RepositoryIdentity string `json:"repository_identity"`
+		ParentId           int    `json:"parent_id"` //文件夹id
+	}
+	ShareBasicSaveres {
+		Identity string `json:"identity"` //user_repository -> identity
+	}
+)
+
+// 刷新token
+type (
+	RefreshTokenreq struct{}
+	RefreshTokenres {
+		Token        string `form:"token"`
+		RefreshToken string `form:"refresh_token"`
+	}
+)
 
 @server (
 	middleware: Auth
 )
 service core-api {
+	// 文件上传
 	@handler FileUpload
 	post /file/upload(FileUploadreq) returns(FileUploadres)
 
+	// 文件用户关联
 	@handler UserRepositorySave
 	post /user/repository/save(UserRepositorySavereq) returns(UserRepositorySaveres)
 
-	@handler UserFileNameUpdate
-	post /user/file/name/update(UserFileNameUpdatereq) returns(UserFileNameUpdateres)
-
+	// 用户-文件列表
 	@handler UserFileList
 	post /user/file/list(UserFileListreq) returns(UserFileListres)
 
+	// 用户-文件名称修改
+	@handler UserFileNameUpdate
+	post /user/file/name/update(UserFileNameUpdatereq) returns(UserFileNameUpdateres)
+
+	// 用户-文件夹创建
 	@handler UserFolderCreate
 	post /user/folder/create/userfolder(UserFolderCreatereq) returns(UserFolderCreateres)
 
+	// 用户-文件删除
 	@handler UserFolderDelete
 	delete /user/folder/delete/userfolder/:identity(UserFolderDeletereq) returns(UserFolderDeleteres)
+
+	// 用户-文件移动
+	@handler UserFolderMove
+	put /user/folder/move/userfolder(UserFolderMovereq) returns(UserFolderMoveres)
+
+	// 创建文件共享
+	@handler ShareCreate
+	post /share/basic/create(ShareCreatereq) returns(ShareCreateres)
+
+	// 文件保存
+	@handler ShareBasicSave
+	post /share/basic/save(ShareBasicSavereq) returns(ShareBasicSaveres)
+
+	// 刷新token
+	@handler RefreshToken
+	post /refresh/token(RefreshTokenreq) returns(RefreshTokenres)
 
 }

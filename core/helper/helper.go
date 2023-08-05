@@ -9,9 +9,12 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"math"
 	rand "math/rand"
+	"mime/multipart"
 	"net/http"
 	"net/smtp"
+	"os"
 	"path"
 	"time"
 
@@ -31,13 +34,13 @@ func generateEcdsaPrivateKey() (*ecdsa.PrivateKey, error) {
 }
 
 // token
-func GenerateToken(id uint64, identity, name string) (string, error) {
+func GenerateToken(id uint64, identity, name string, expiretime time.Duration) (string, error) {
 	uc := define.UserClaim{
 		Id:       id,
 		Identity: identity,
 		Name:     name,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)), // 定义过期时间 1day
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiretime)), // 定义过期时间 单位:分钟
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, uc)
@@ -50,7 +53,7 @@ func GenerateToken(id uint64, identity, name string) (string, error) {
 }
 
 // 解密token
-func DecryptToekn(token string) (*define.UserClaim, error) {
+func DecryptToken(token string) (*define.UserClaim, error) {
 	uc := new(define.UserClaim)
 	claims, err := jwt.ParseWithClaims(token, uc, func(tk *jwt.Token) (any, error) {
 		return []byte(define.JwtKey), nil
@@ -92,7 +95,7 @@ func GenerateUUID() string {
 	return u1.String()
 }
 
-// 上传文件到oss
+// 直接上传文件到oss
 func OssUpload(r *http.Request) (string, error) {
 	// 连接oss
 	client, err := oss.New(define.OssEndPoint, define.OssaccessKeyID, define.OssaccessSecret)
@@ -118,5 +121,70 @@ func OssUpload(r *http.Request) (string, error) {
 		return "", err
 	}
 	filepath := define.OssPath + "/" + objectKey
+	return filepath, nil
+}
+
+// 分片上传件到oss
+func OssPartUpload(r *http.Request, b []byte, fileheader *multipart.FileHeader) (string, error) {
+	// 步骤0：初始化oss
+	client, err := oss.New(define.OssEndPoint, define.OssaccessKeyID, define.OssaccessSecret)
+	if err != nil {
+		return "", err
+	}
+	bucket, err := client.Bucket("zero-cloud-disk")
+	if err != nil {
+		return "", nil
+	}
+	// end
+	Ext := path.Ext(fileheader.Filename)
+	UUID := GenerateUUID()
+	key := "cloud-disk/" + UUID + Ext   //存放云端的路径
+	localname := "../img/" + UUID + Ext //存放本地的路径
+
+	myFile, err := os.OpenFile(localname, os.O_CREATE|os.O_RDWR, os.ModePerm) //保存到本地文件
+	myFile.Write(b)
+	defer myFile.Close()
+	defer os.Remove(localname)
+	// 步骤1：初始化一个分片上传事件。
+	v, err := bucket.InitiateMultipartUpload(key)
+	if err != nil {
+		return "", err
+	}
+
+	chunkNum := math.Ceil(float64(fileheader.Size) / float64(define.ChunkSize)) //被分成几片
+	chunks, err := oss.SplitFileByPartNum(localname, int(chunkNum))             //分片文件数组
+	if err != nil {
+		return "", err
+	}
+	var parts []oss.UploadPart //用于保存成功上传的分片
+
+	// 步骤2：上传分片
+	// todo 改为并发上传
+	// var wg sync.WaitGroup
+	// wg.Add(int(chunkNum))
+	for _, chunk := range chunks {
+		// go func(chunk oss.FileChunk, i int) {
+		myFile.Seek(chunk.Offset, 0)
+		part, err := bucket.UploadPart(v, myFile, chunk.Size, chunk.Number)
+		if err != nil {
+			return "", err
+		}
+		parts = append(parts, part)
+		// wg.Done()
+		// }(chunk, index)
+	}
+	// wg.Wait()
+
+	// 指定Object的读写权限为私有，默认为继承Bucket的读写权限。
+	// objectAcl := oss.ObjectACL(oss.ACLPrivate)
+
+	// 步骤3：完成分片上传。
+	// cmur, err := bucket.CompleteMultipartUpload(v, parts, objectAcl)
+	cmur, err := bucket.CompleteMultipartUpload(v, parts)
+	if err != nil {
+		return "", err
+	}
+	fmt.Println("上传结果:", cmur)
+	filepath := define.OssPath + "/" + key
 	return filepath, nil
 }
